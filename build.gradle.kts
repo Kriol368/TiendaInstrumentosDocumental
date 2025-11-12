@@ -10,10 +10,9 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
-    implementation("org.mongodb:mongodb-driver-sync:4.11.0")
+    implementation("org.mongodb:mongodb-driver-sync:4.11.1")
+    implementation("org.slf4j:slf4j-nop:2.0.9")
 }
-
 tasks.test {
     useJUnitPlatform()
 }
