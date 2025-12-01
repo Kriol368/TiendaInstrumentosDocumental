@@ -207,7 +207,6 @@ fun variasOperaciones() {
     println("=".repeat(60))
     println("%-4s %-20s %-15s %-6s %-10s".format("ID", "NOMBRE", "FABRICANTE", "AÑO", "PRECIO"))
     println("-".repeat(60))
-
     col.find(Filters.gt("precio", 300)).forEach { doc ->
         println(
             "%-4s %-20s %-15s %-6s %-10s".format(
@@ -225,9 +224,30 @@ fun variasOperaciones() {
     println("=".repeat(40))
     println("%-25s".format("NOMBRE DEL INSTRUMENTO"))
     println("-".repeat(25))
-
     col.find().projection(Projections.include("nombre_instrumento")).forEach { doc ->
         println("%-25s".format(doc.getString("nombre_instrumento")))
+    }
+
+    println("\n" + "=".repeat(50))
+    println("PRIMEROS 3 INSTRUMENTOS")
+    println("=".repeat(50))
+    println("%-4s %-20s %-15s".format("ID", "NOMBRE", "FABRICANTE"))
+    println("-".repeat(40))
+    val pipelineLimit = listOf(
+        Document($$"$limit", 3)
+    )
+    val aggCursorLimit = col.aggregate(pipelineLimit).iterator()
+    aggCursorLimit.use {
+        while (it.hasNext()) {
+            val doc = it.next()
+            println(
+                "%-4s %-20s %-15s".format(
+                    doc.get("id_instrumento").toString(),
+                    doc.getString("nombre_instrumento"),
+                    doc.getString("fabricante")
+                )
+            )
+        }
     }
 
     println("\n" + "=".repeat(50))
@@ -271,10 +291,8 @@ fun variasOperaciones() {
     }
 
     println("=".repeat(50))
-
     client.close()
 }
-
 fun exportarBD(rutaJSON: String) {
     val client = MongoClients.create(NOM_SRV)
     val coleccion = client.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
