@@ -2,6 +2,7 @@ package org.example
 
 import com.mongodb.client.MongoClients
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Projections
 import org.bson.Document
 import java.util.*
 
@@ -25,7 +26,8 @@ fun menu() {
         println("2. Insertar nuevo instrumento")
         println("3. Actualizar precio de instrumento")
         println("4. Eliminar instrumento por ID")
-        println("5. Salir")
+        println("5. Consultas especiales")
+        println("6. Salir")
         println("=".repeat(50))
 
         opcion = try {
@@ -39,10 +41,11 @@ fun menu() {
             2 -> insertarInstrumento()
             3 -> actualizarPrecio()
             4 -> eliminarInstrumento()
-            5 -> println("¡Hasta pronto!")
+            5 -> variasOperaciones()
+            6 -> println("¡Hasta pronto!")
             else -> println("Opción no válida. Intente nuevamente.")
         }
-    } while (opcion != 5)
+    } while (opcion != 6)
 }
 
 fun listarInstrumentos() {
@@ -189,4 +192,80 @@ fun eliminarInstrumento() {
     else println("No se encontró ningún instrumento con ese ID.")
 
     cliente.close()
+}
+
+fun variasOperaciones() {
+    val client = MongoClients.create(NOM_SRV)
+    val col = client.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
+
+    println("\n" + "=".repeat(60))
+    println("INSTRUMENTOS CON PRECIO MAYOR A 300€")
+    println("=".repeat(60))
+    println("%-4s %-20s %-15s %-6s %-10s".format("ID", "NOMBRE", "FABRICANTE", "AÑO", "PRECIO"))
+    println("-".repeat(60))
+
+    col.find(Filters.gt("precio", 300)).forEach { doc ->
+        println(
+            "%-4s %-20s %-15s %-6s %-10s".format(
+                doc.get("id_instrumento").toString(),
+                doc.getString("nombre_instrumento"),
+                doc.getString("fabricante"),
+                doc.get("ano_fabricacion").toString(),
+                "${doc.get("precio")}€"
+            )
+        )
+    }
+
+    println("\n" + "=".repeat(40))
+    println("SOLO NOMBRES DE INSTRUMENTOS")
+    println("=".repeat(40))
+    println("%-25s".format("NOMBRE DEL INSTRUMENTO"))
+    println("-".repeat(25))
+
+    col.find().projection(Projections.include("nombre_instrumento")).forEach { doc ->
+        println("%-25s".format(doc.getString("nombre_instrumento")))
+    }
+
+    println("\n" + "=".repeat(50))
+    println("ESTADÍSTICAS DE PRECIOS")
+    println("=".repeat(50))
+
+    val pipeline = listOf(
+        Document(
+            $$"$group", Document("_id", null)
+            .append("precioPromedio", Document($$"$avg", $$"$precio"))
+            .append("precioMaximo", Document($$"$max", $$"$precio"))
+            .append("precioMinimo", Document($$"$min", $$"$precio"))
+            .append("totalInstrumentos", Document($$"$sum", 1)))
+    )
+
+    val aggCursor = col.aggregate(pipeline).iterator()
+    aggCursor.use {
+        while (it.hasNext()) {
+            val resultado = it.next()
+
+            fun obtenerDoubleValor(clave: String): Double {
+                return when (val valor = resultado[clave]) {
+                    is Double -> valor
+                    is Int -> valor.toDouble()
+                    is Number -> valor.toDouble()
+                    else -> 0.0
+                }
+            }
+
+            val promedio = obtenerDoubleValor("precioPromedio")
+            val maximo = obtenerDoubleValor("precioMaximo")
+            val minimo = obtenerDoubleValor("precioMinimo")
+            val total = resultado.getInteger("totalInstrumentos") ?: 0
+
+            println("Precio promedio: ${"%.2f".format(promedio)}€")
+            println("Precio más alto: ${"%.2f".format(maximo)}€")
+            println("Precio más bajo: ${"%.2f".format(minimo)}€")
+            println("Total instrumentos: $total")
+        }
+    }
+
+    println("=".repeat(50))
+
+    client.close()
 }
