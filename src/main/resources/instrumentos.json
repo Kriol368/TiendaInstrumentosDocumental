@@ -1,0 +1,51 @@
+[
+{
+  "_id": {
+    "$oid": "6914c6709489ab14bb9dc29d"
+  },
+  "id_instrumento": 1,
+  "nombre_instrumento": "Guitarra Eléctrica",
+  "fabricante": "Fender",
+  "ano_fabricacion": 2021,
+  "precio": 44.33
+},
+{
+  "_id": {
+    "$oid": "6914c6709489ab14bb9dc29e"
+  },
+  "id_instrumento": 2,
+  "nombre_instrumento": "Batería Acústica",
+  "fabricante": "Pearl",
+  "ano_fabricacion": 2018,
+  "precio": 2350
+},
+{
+  "_id": {
+    "$oid": "6914c6709489ab14bb9dc29f"
+  },
+  "id_instrumento": 3,
+  "nombre_instrumento": "Saxofón Tenor",
+  "fabricante": "Yamaha",
+  "ano_fabricacion": 2015,
+  "precio": 1899.75
+},
+{
+  "_id": {
+    "$oid": "6914c6709489ab14bb9dc2a0"
+  },
+  "id_instrumento": 4,
+  "nombre_instrumento": "Violín",
+  "fabricante": "Stradivarius",
+  "ano_fabricacion": 2020,
+  "precio": 899
+},
+{
+  "_id": {
+    "$oid": "6914c6709489ab14bb9dc2a1"
+  },
+  "id_instrumento": 5,
+  "nombre_instrumento": "Teclado Digital",
+  "fabricante": "Korg",
+  "ano_fabricacion": 2022,
+  "precio": 750.3
+}]

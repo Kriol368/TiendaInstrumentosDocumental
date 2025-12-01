@@ -4,6 +4,8 @@ import com.mongodb.client.MongoClients
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Projections
 import org.bson.Document
+import org.bson.json.JsonWriterSettings
+import java.io.File
 import java.util.*
 
 const val NOM_SRV = "mongodb://root:Taller2014@localhost:27017"
@@ -27,7 +29,8 @@ fun menu() {
         println("3. Actualizar precio de instrumento")
         println("4. Eliminar instrumento por ID")
         println("5. Consultas especiales")
-        println("6. Salir")
+        println("6. Exportar a JSON")
+        println("7. Salir")
         println("=".repeat(50))
 
         opcion = try {
@@ -42,10 +45,11 @@ fun menu() {
             3 -> actualizarPrecio()
             4 -> eliminarInstrumento()
             5 -> variasOperaciones()
-            6 -> println("¡Hasta pronto!")
+            6 -> exportarBD("src/main/resources/instrumentos.json")
+            7 -> println("¡Hasta pronto!")
             else -> println("Opción no válida. Intente nuevamente.")
         }
-    } while (opcion != 6)
+    } while (opcion != 7)
 }
 
 fun listarInstrumentos() {
@@ -268,5 +272,30 @@ fun variasOperaciones() {
 
     println("=".repeat(50))
 
+    client.close()
+}
+
+fun exportarBD(rutaJSON: String) {
+    val client = MongoClients.create(NOM_SRV)
+    val coleccion = client.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
+
+    val settings = JsonWriterSettings.builder().indent(true).build()
+    val file = File(rutaJSON)
+
+    file.printWriter().use { out ->
+        out.println("[")
+        val cursor = coleccion.find().iterator()
+        var first = true
+        while (cursor.hasNext()) {
+            if (!first) out.println(",")
+            val doc = cursor.next()
+            out.print(doc.toJson(settings))
+            first = false
+        }
+        out.println("]")
+        cursor.close()
+    }
+
+    println("Exportación de instrumentos completada")
     client.close()
 }
