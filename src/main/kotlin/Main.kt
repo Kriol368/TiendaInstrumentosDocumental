@@ -232,11 +232,12 @@ fun variasOperaciones() {
 
     val pipeline = listOf(
         Document(
-            $$"$group", Document("_id", null)
-            .append("precioPromedio", Document($$"$avg", $$"$precio"))
-            .append("precioMaximo", Document($$"$max", $$"$precio"))
-            .append("precioMinimo", Document($$"$min", $$"$precio"))
-            .append("totalInstrumentos", Document($$"$sum", 1)))
+            $$"$group",
+            Document("_id", null).append("precioPromedio", Document($$"$avg", $$"$precio"))
+                .append("precioMaximo", Document($$"$max", $$"$precio"))
+                .append("precioMinimo", Document($$"$min", $$"$precio"))
+                .append("totalInstrumentos", Document($$"$sum", 1))
+        )
     )
 
     val aggCursor = col.aggregate(pipeline).iterator()
