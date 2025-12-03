@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
     implementation("org.mongodb:mongodb-driver-sync:4.11.1")
+    implementation("de.bwaldvogel:mongo-java-server:1.45.0")
     implementation("org.slf4j:slf4j-nop:2.0.9")
     implementation("org.json:json:20231013")
 }

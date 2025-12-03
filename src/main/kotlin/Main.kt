@@ -1,21 +1,51 @@
-package org.example
-
+import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
+import com.mongodb.client.MongoCollection
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Projections
+import de.bwaldvogel.mongo.MongoServer
+import de.bwaldvogel.mongo.backend.memory.MemoryBackend
 import org.bson.Document
 import org.bson.json.JsonWriterSettings
+import org.json.JSONArray
 import java.io.File
 import java.util.*
 
-const val NOM_SRV = "mongodb://root:Taller2014@localhost:27017"
+lateinit var servidor: MongoServer
+lateinit var cliente: MongoClient
+lateinit var uri: String
+lateinit var coleccionInstrumentos: MongoCollection<Document>
+
 const val NOM_BD = "tiendainstrumentos"
 const val NOM_COLECCION = "instrumento"
 
 val scanner = Scanner(System.`in`)
 
+fun conectarBD() {
+    servidor = MongoServer(MemoryBackend())
+    val address = servidor.bind()
+    uri = "mongodb://${address.hostName}:${address.port}"
+
+    cliente = MongoClients.create(uri)
+    coleccionInstrumentos = cliente.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
+
+    println("Servidor MongoDB en memoria iniciado en $uri")
+}
+
+fun desconectarBD() {
+    cliente.close()
+    servidor.shutdown()
+    println("Servidor MongoDB en memoria finalizado")
+}
+
 fun main() {
+    conectarBD()
+    importarBD("src/main/resources/instrumentos.json", coleccionInstrumentos)
+
     menu()
+
+    exportarBD(coleccionInstrumentos, "src/main/resources/instrumentos.json")
+    desconectarBD()
 }
 
 fun menu() {
@@ -29,8 +59,7 @@ fun menu() {
         println("3. Actualizar precio de instrumento")
         println("4. Eliminar instrumento por ID")
         println("5. Consultas especiales")
-        println("6. Exportar a JSON")
-        println("7. Salir")
+        println("6. Salir")
         println("=".repeat(50))
 
         opcion = try {
@@ -45,19 +74,14 @@ fun menu() {
             3 -> actualizarPrecio()
             4 -> eliminarInstrumento()
             5 -> variasOperaciones()
-            6 -> exportarBD("src/main/resources/instrumentos.json")
-            7 -> println("¡Hasta pronto!")
+            6 -> println("¡Hasta pronto!")
             else -> println("Opción no válida. Intente nuevamente.")
         }
-    } while (opcion != 7)
+    } while (opcion != 6)
 }
 
 fun listarInstrumentos() {
-    val cliente = MongoClients.create(NOM_SRV)
-    val db = cliente.getDatabase(NOM_BD)
-    val coleccion = db.getCollection(NOM_COLECCION)
-
-    val cursor = coleccion.find().iterator()
+    val cursor = coleccionInstrumentos.find().iterator()
     cursor.use {
         println("=".repeat(80))
         println(
@@ -71,7 +95,7 @@ fun listarInstrumentos() {
             val doc = it.next()
             println(
                 "%-4s %-20s %-15s %-6s %-10s".format(
-                    doc.get("id_instrumento").toString(),
+                    doc["id_instrumento"].toString(),
                     doc.getString("nombre_instrumento"),
                     doc.getString("fabricante"),
                     doc.get("ano_fabricacion").toString(),
@@ -81,14 +105,9 @@ fun listarInstrumentos() {
         }
         println("=".repeat(80))
     }
-    cliente.close()
 }
 
 fun insertarInstrumento() {
-    val cliente = MongoClients.create(NOM_SRV)
-    val db = cliente.getDatabase(NOM_BD)
-    val coleccion = db.getCollection(NOM_COLECCION)
-
     var idInstrumento: Int? = null
     while (idInstrumento == null) {
         print("ID del instrumento: ")
@@ -128,17 +147,11 @@ fun insertarInstrumento() {
     val doc = Document("id_instrumento", idInstrumento).append("nombre_instrumento", nombreInstrumento)
         .append("fabricante", fabricante).append("ano_fabricacion", anoFabricacion).append("precio", precio)
 
-    coleccion.insertOne(doc)
+    coleccionInstrumentos.insertOne(doc)
     println("Instrumento insertado con ID: $idInstrumento")
-
-    cliente.close()
 }
 
 fun actualizarPrecio() {
-    val cliente = MongoClients.create(NOM_SRV)
-    val db = cliente.getDatabase(NOM_BD)
-    val coleccion = db.getCollection(NOM_COLECCION)
-
     var idInstrumento: Int? = null
     while (idInstrumento == null) {
         print("ID del instrumento a actualizar: ")
@@ -149,7 +162,7 @@ fun actualizarPrecio() {
         }
     }
 
-    val instrumento = coleccion.find(Filters.eq("id_instrumento", idInstrumento)).firstOrNull()
+    val instrumento = coleccionInstrumentos.find(Filters.eq("id_instrumento", idInstrumento)).firstOrNull()
     if (instrumento == null) {
         println("No se encontró ningún instrumento con id_instrumento = \"$idInstrumento\".")
     } else {
@@ -165,22 +178,16 @@ fun actualizarPrecio() {
             }
         }
 
-        val result = coleccion.updateOne(
+        val result = coleccionInstrumentos.updateOne(
             Filters.eq("id_instrumento", idInstrumento), Document($$"$set", Document("precio", precio))
         )
 
         if (result.modifiedCount > 0) println("Precio actualizado correctamente (${result.modifiedCount} documento modificado).")
         else println("No se modificó ningún documento (el precio quizá ya era el mismo).")
     }
-
-    cliente.close()
 }
 
 fun eliminarInstrumento() {
-    val cliente = MongoClients.create(NOM_SRV)
-    val db = cliente.getDatabase(NOM_BD)
-    val coleccion = db.getCollection(NOM_COLECCION)
-
     var idInstrumento: Int? = null
     while (idInstrumento == null) {
         print("ID del instrumento a eliminar: ")
@@ -191,23 +198,18 @@ fun eliminarInstrumento() {
         }
     }
 
-    val result = coleccion.deleteOne(Filters.eq("id_instrumento", idInstrumento))
+    val result = coleccionInstrumentos.deleteOne(Filters.eq("id_instrumento", idInstrumento))
     if (result.deletedCount > 0) println("Instrumento eliminado correctamente.")
     else println("No se encontró ningún instrumento con ese ID.")
-
-    cliente.close()
 }
 
 fun variasOperaciones() {
-    val client = MongoClients.create(NOM_SRV)
-    val col = client.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
-
     println("\n" + "=".repeat(60))
     println("INSTRUMENTOS CON PRECIO MAYOR A 300€")
     println("=".repeat(60))
     println("%-4s %-20s %-15s %-6s %-10s".format("ID", "NOMBRE", "FABRICANTE", "AÑO", "PRECIO"))
     println("-".repeat(60))
-    col.find(Filters.gt("precio", 300)).forEach { doc ->
+    coleccionInstrumentos.find(Filters.gt("precio", 300)).forEach { doc ->
         println(
             "%-4s %-20s %-15s %-6s %-10s".format(
                 doc.get("id_instrumento").toString(),
@@ -224,7 +226,7 @@ fun variasOperaciones() {
     println("=".repeat(40))
     println("%-25s".format("NOMBRE DEL INSTRUMENTO"))
     println("-".repeat(25))
-    col.find().projection(Projections.include("nombre_instrumento")).forEach { doc ->
+    coleccionInstrumentos.find().projection(Projections.include("nombre_instrumento")).forEach { doc ->
         println("%-25s".format(doc.getString("nombre_instrumento")))
     }
 
@@ -236,7 +238,7 @@ fun variasOperaciones() {
     val pipelineLimit = listOf(
         Document($$"$limit", 3)
     )
-    val aggCursorLimit = col.aggregate(pipelineLimit).iterator()
+    val aggCursorLimit = coleccionInstrumentos.aggregate(pipelineLimit).iterator()
     aggCursorLimit.use {
         while (it.hasNext()) {
             val doc = it.next()
@@ -264,7 +266,7 @@ fun variasOperaciones() {
         )
     )
 
-    val aggCursor = col.aggregate(pipeline).iterator()
+    val aggCursor = coleccionInstrumentos.aggregate(pipeline).iterator()
     aggCursor.use {
         while (it.hasNext()) {
             val resultado = it.next()
@@ -291,12 +293,9 @@ fun variasOperaciones() {
     }
 
     println("=".repeat(50))
-    client.close()
 }
-fun exportarBD(rutaJSON: String) {
-    val client = MongoClients.create(NOM_SRV)
-    val coleccion = client.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
 
+fun exportarBD(coleccion: MongoCollection<Document>, rutaJSON: String) {
     val settings = JsonWriterSettings.builder().indent(true).build()
     val file = File(rutaJSON)
 
@@ -315,5 +314,47 @@ fun exportarBD(rutaJSON: String) {
     }
 
     println("Exportación de instrumentos completada")
-    client.close()
+}
+
+fun importarBD(rutaJSON: String, coleccion: MongoCollection<Document>) {
+    println("Iniciando importación de datos desde JSON...")
+
+    val jsonFile = File(rutaJSON)
+    if (!jsonFile.exists()) {
+        println("No se encontró el archivo JSON a importar")
+        return
+    }
+
+    val jsonText = try {
+        jsonFile.readText()
+    } catch (e: Exception) {
+        println("Error leyendo el archivo JSON: ${e.message}")
+        return
+    }
+
+    val array = try {
+        JSONArray(jsonText)
+    } catch (e: Exception) {
+        println("Error al parsear JSON: ${e.message}")
+        return
+    }
+
+    val documentos = mutableListOf<Document>()
+    for (i in 0 until array.length()) {
+        val doc = Document.parse(array.getJSONObject(i).toString())
+        doc.remove("_id")
+        documentos.add(doc)
+    }
+
+    if (documentos.isEmpty()) {
+        println("El archivo JSON está vacío")
+        return
+    }
+
+    try {
+        coleccion.insertMany(documentos)
+        println("Importación completada: ${documentos.size} documentos.")
+    } catch (e: Exception) {
+        println("Error importando documentos: ${e.message}")
+    }
 }

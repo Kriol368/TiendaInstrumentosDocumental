@@ -1,51 +1,71 @@
 [
 {
   "_id": {
-    "$oid": "6914c6709489ab14bb9dc29d"
+    "$oid": "693063e1c21d5d3aaed418da"
   },
-  "id_instrumento": 1,
+  "precio": 44.33,
   "nombre_instrumento": "Guitarra Eléctrica",
+  "id_instrumento": 1,
   "fabricante": "Fender",
-  "ano_fabricacion": 2021,
-  "precio": 44.33
+  "ano_fabricacion": 2021
 },
 {
   "_id": {
-    "$oid": "6914c6709489ab14bb9dc29e"
+    "$oid": "693063e1c21d5d3aaed418db"
   },
-  "id_instrumento": 2,
+  "precio": 2350,
   "nombre_instrumento": "Batería Acústica",
+  "id_instrumento": 2,
   "fabricante": "Pearl",
-  "ano_fabricacion": 2018,
-  "precio": 2350
+  "ano_fabricacion": 2018
 },
 {
   "_id": {
-    "$oid": "6914c6709489ab14bb9dc29f"
+    "$oid": "693063e1c21d5d3aaed418dc"
   },
-  "id_instrumento": 3,
+  "precio": 1899.75,
   "nombre_instrumento": "Saxofón Tenor",
+  "id_instrumento": 3,
   "fabricante": "Yamaha",
-  "ano_fabricacion": 2015,
-  "precio": 1899.75
+  "ano_fabricacion": 2015
 },
 {
   "_id": {
-    "$oid": "6914c6709489ab14bb9dc2a0"
+    "$oid": "693063e1c21d5d3aaed418dd"
   },
-  "id_instrumento": 4,
+  "precio": 899,
   "nombre_instrumento": "Violín",
+  "id_instrumento": 4,
   "fabricante": "Stradivarius",
-  "ano_fabricacion": 2020,
-  "precio": 899
+  "ano_fabricacion": 2020
 },
 {
   "_id": {
-    "$oid": "6914c6709489ab14bb9dc2a1"
+    "$oid": "693063e1c21d5d3aaed418de"
   },
-  "id_instrumento": 5,
+  "precio": 750.3,
   "nombre_instrumento": "Teclado Digital",
+  "id_instrumento": 5,
   "fabricante": "Korg",
-  "ano_fabricacion": 2022,
-  "precio": 750.3
+  "ano_fabricacion": 2022
+},
+{
+  "_id": {
+    "$oid": "69306406c21d5d3aaed418df"
+  },
+  "id_instrumento": 8,
+  "nombre_instrumento": "Piano",
+  "fabricante": "Korg",
+  "ano_fabricacion": 1993,
+  "precio": 5999.95
+},
+{
+  "_id": {
+    "$oid": "69306415c21d5d3aaed418e0"
+  },
+  "id_instrumento": 7,
+  "nombre_instrumento": "Pandereta",
+  "fabricante": "Yo",
+  "ano_fabricacion": 13,
+  "precio": 69.0
 }]
