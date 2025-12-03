@@ -166,7 +166,7 @@ fun actualizarPrecio() {
     if (instrumento == null) {
         println("No se encontró ningún instrumento con id_instrumento = \"$idInstrumento\".")
     } else {
-        println("Instrumento encontrado: ${instrumento.getString("nombre_instrumento")} (precio: ${instrumento.get("precio")}€)")
+        println("Instrumento encontrado: ${instrumento.getString("nombre_instrumento")} (precio: ${instrumento["precio"]}€)")
 
         var precio: Double? = null
         while (precio == null) {
