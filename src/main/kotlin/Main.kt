@@ -616,137 +616,204 @@ fun variasOperaciones() {
 }
 
 fun instrumentosConCategoria() {
-    println("\n" + "=".repeat(100))
-    println("INSTRUMENTOS CON SU CATEGORÍA")
-    println("=".repeat(100))
-    println(
-        "%-4s %-20s %-15s %-10s %-20s %-25s".format(
-            "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "CATEGORÍA", "DESCRIPCIÓN"
+    println("\n" + "=".repeat(120))
+    println("INSTRUMENTOS CON CATEGORÍA")
+    println("=".repeat(120))
+    println("%-4s %-20s %-15s %-10s %-20s %-25s".format(
+        "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "CATEGORÍA", "DESCRIPCIÓN"
+    ))
+    println("=".repeat(120))
+
+    val pipeline = listOf(
+        Document(
+            $$"$lookup", Document()
+            .append("from", "categoria")
+            .append("localField", "id_categoria")
+            .append("foreignField", "id_categoria")
+            .append("as", "categoria_info")
+        ),
+        Document(
+            $$"$unwind", Document()
+            .append("path", $$"$categoria_info")
+            .append("preserveNullAndEmptyArrays", true)
+        ),
+        Document(
+            $$"$project", Document()
+            .append("id_instrumento", 1)
+            .append("nombre_instrumento", 1)
+            .append("fabricante", 1)
+            .append("precio", 1)
+            .append("categoria_nombre", $$"$categoria_info.nombre")
+            .append("categoria_descripcion", $$"$categoria_info.descripcion")
         )
     )
-    println("=".repeat(100))
 
-    coleccionInstrumentos.find().forEach { instrumento ->
-        val idCategoria = instrumento.getInteger("id_categoria")
-        var nombreCategoria = "Sin categoría"
-        var descripcionCategoria = "N/A"
+    try {
+        val cursor = coleccionInstrumentos.aggregate(pipeline).iterator()
+        cursor.use {
+            while (it.hasNext()) {
+                val doc = it.next()
+                val categoriaNombre = doc.getString("categoria_nombre") ?: "Sin categoría"
+                val categoriaDesc = doc.getString("categoria_descripcion") ?: "N/A"
 
-        if (idCategoria != null) {
-            val categoria = coleccionCategorias.find(Filters.eq("id_categoria", idCategoria)).firstOrNull()
-            if (categoria != null) {
-                nombreCategoria = categoria.getString("nombre")
-                descripcionCategoria = categoria.getString("descripcion")
+                println(
+                    "%-4s %-20s %-15s %-10s %-20s %-25s".format(
+                        doc["id_instrumento"].toString(),
+                        doc.getString("nombre_instrumento"),
+                        doc.getString("fabricante"),
+                        "${doc["precio"]}€",
+                        categoriaNombre,
+                        categoriaDesc
+                    )
+                )
             }
         }
-
-        println(
-            "%-4s %-20s %-15s %-10s %-20s %-25s".format(
-                instrumento["id_instrumento"].toString(),
-                instrumento.getString("nombre_instrumento"),
-                instrumento.getString("fabricante"),
-                "${instrumento["precio"]}€",
-                nombreCategoria,
-                descripcionCategoria
-            )
-        )
+    } catch (e: Exception) {
+        println("Error en la consulta: ${e.message}")
     }
 
-    println("=".repeat(100))
+    println("=".repeat(120))
 }
 
 fun instrumentosConProveedor() {
-    println("\n" + "=".repeat(120))
-    println("INSTRUMENTOS CON SU PROVEEDOR")
-    println("=".repeat(120))
-    println(
-        "%-4s %-20s %-15s %-10s %-30s %-15s %-25s".format(
-            "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "PROVEEDOR", "TELÉFONO", "EMAIL"
+    println("\n" + "=".repeat(150))
+    println("INSTRUMENTOS CON PROVEEDOR")
+    println("=".repeat(150))
+    println("%-4s %-20s %-15s %-10s %-30s %-15s %-25s".format(
+        "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "PROVEEDOR", "TELÉFONO", "EMAIL"
+    ))
+    println("=".repeat(150))
+
+    val pipeline = listOf(
+        Document(
+            $$"$lookup", Document()
+            .append("from", "proveedor")
+            .append("localField", "id_proveedor")
+            .append("foreignField", "id_proveedor")
+            .append("as", "proveedor_info")
+        ),
+        Document(
+            $$"$unwind", Document()
+            .append("path", $$"$proveedor_info")
+            .append("preserveNullAndEmptyArrays", true)
+        ),
+        Document(
+            $$"$project", Document()
+            .append("id_instrumento", 1)
+            .append("nombre_instrumento", 1)
+            .append("fabricante", 1)
+            .append("precio", 1)
+            .append("proveedor_nombre", $$"$proveedor_info.nombre")
+            .append("proveedor_telefono", $$"$proveedor_info.telefono")
+            .append("proveedor_email", $$"$proveedor_info.email")
         )
     )
-    println("=".repeat(120))
 
-    coleccionInstrumentos.find().forEach { instrumento ->
-        val idProveedor = instrumento.getInteger("id_proveedor")
-        var nombreProveedor = "Sin proveedor"
-        var telefonoProveedor = "N/A"
-        var emailProveedor = "N/A"
+    try {
+        val cursor = coleccionInstrumentos.aggregate(pipeline).iterator()
+        cursor.use {
+            while (it.hasNext()) {
+                val doc = it.next()
+                val proveedorNombre = doc.getString("proveedor_nombre") ?: "Sin proveedor"
+                val proveedorTelefono = doc.getString("proveedor_telefono") ?: "N/A"
+                val proveedorEmail = doc.getString("proveedor_email") ?: "N/A"
 
-        if (idProveedor != null) {
-            val proveedor = coleccionProveedores.find(Filters.eq("id_proveedor", idProveedor)).firstOrNull()
-            if (proveedor != null) {
-                nombreProveedor = proveedor.getString("nombre")
-                telefonoProveedor = proveedor.getString("telefono")
-                emailProveedor = proveedor.getString("email")
+                println(
+                    "%-4s %-20s %-15s %-10s %-30s %-15s %-25s".format(
+                        doc["id_instrumento"].toString(),
+                        doc.getString("nombre_instrumento"),
+                        doc.getString("fabricante"),
+                        "${doc["precio"]}€",
+                        proveedorNombre,
+                        proveedorTelefono,
+                        proveedorEmail
+                    )
+                )
             }
         }
-
-        println(
-            "%-4s %-20s %-15s %-10s %-30s %-15s %-25s".format(
-                instrumento["id_instrumento"].toString(),
-                instrumento.getString("nombre_instrumento"),
-                instrumento.getString("fabricante"),
-                "${instrumento["precio"]}€",
-                nombreProveedor,
-                telefonoProveedor,
-                emailProveedor
-            )
-        )
+    } catch (e: Exception) {
+        println("Error en la consulta: ${e.message}")
     }
 
-    println("=".repeat(120))
+    println("=".repeat(150))
 }
 
 fun instrumentosConProveedorYCategoria() {
-    println("\n" + "=".repeat(150))
+    println("\n" + "=".repeat(180))
     println("INSTRUMENTOS CON PROVEEDOR Y CATEGORÍA")
-    println("=".repeat(150))
-    println(
-        "%-4s %-20s %-15s %-10s %-20s %-30s %-20s %-20s".format(
-            "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "CATEGORÍA", "PROVEEDOR", "TELÉFONO", "EMAIL"
+    println("=".repeat(180))
+    println("%-4s %-20s %-15s %-10s %-20s %-30s %-20s %-20s".format(
+        "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "CATEGORÍA", "PROVEEDOR", "TELÉFONO", "EMAIL"
+    ))
+    println("=".repeat(180))
+
+    val pipeline = listOf(
+        Document(
+            $$"$lookup", Document()
+            .append("from", "categoria")
+            .append("localField", "id_categoria")
+            .append("foreignField", "id_categoria")
+            .append("as", "categoria_info")
+        ),
+        Document(
+            $$"$unwind", Document()
+            .append("path", $$"$categoria_info")
+            .append("preserveNullAndEmptyArrays", true)
+        ),
+        Document(
+            $$"$lookup", Document()
+            .append("from", "proveedor")
+            .append("localField", "id_proveedor")
+            .append("foreignField", "id_proveedor")
+            .append("as", "proveedor_info")
+        ),
+        Document(
+            $$"$unwind", Document()
+            .append("path", $$"$proveedor_info")
+            .append("preserveNullAndEmptyArrays", true)
+        ),
+        Document(
+            $$"$project", Document()
+            .append("id_instrumento", 1)
+            .append("nombre_instrumento", 1)
+            .append("fabricante", 1)
+            .append("precio", 1)
+            .append("categoria_nombre", $$"$categoria_info.nombre")
+            .append("proveedor_nombre", $$"$proveedor_info.nombre")
+            .append("proveedor_telefono", $$"$proveedor_info.telefono")
+            .append("proveedor_email", $$"$proveedor_info.email")
         )
     )
-    println("=".repeat(150))
 
-    coleccionInstrumentos.find().forEach { instrumento ->
-        val idCategoria = instrumento.getInteger("id_categoria")
-        val idProveedor = instrumento.getInteger("id_proveedor")
+    try {
+        val cursor = coleccionInstrumentos.aggregate(pipeline).iterator()
+        cursor.use {
+            while (it.hasNext()) {
+                val doc = it.next()
+                val categoriaNombre = doc.getString("categoria_nombre") ?: "Sin categoría"
+                val proveedorNombre = doc.getString("proveedor_nombre") ?: "Sin proveedor"
+                val proveedorTelefono = doc.getString("proveedor_telefono") ?: "N/A"
+                val proveedorEmail = doc.getString("proveedor_email") ?: "N/A"
 
-        var nombreCategoria = "Sin categoría"
-        var nombreProveedor = "Sin proveedor"
-        var telefonoProveedor = "N/A"
-        var emailProveedor = "N/A"
-
-        if (idCategoria != null) {
-            val categoria = coleccionCategorias.find(Filters.eq("id_categoria", idCategoria)).firstOrNull()
-            if (categoria != null) {
-                nombreCategoria = categoria.getString("nombre")
+                println(
+                    "%-4s %-20s %-15s %-10s %-20s %-30s %-20s %-20s".format(
+                        doc["id_instrumento"].toString(),
+                        doc.getString("nombre_instrumento"),
+                        doc.getString("fabricante"),
+                        "${doc["precio"]}€",
+                        categoriaNombre,
+                        proveedorNombre,
+                        proveedorTelefono,
+                        proveedorEmail
+                    )
+                )
             }
         }
-
-        if (idProveedor != null) {
-            val proveedor = coleccionProveedores.find(Filters.eq("id_proveedor", idProveedor)).firstOrNull()
-            if (proveedor != null) {
-                nombreProveedor = proveedor.getString("nombre")
-                telefonoProveedor = proveedor.getString("telefono")
-                emailProveedor = proveedor.getString("email")
-            }
-        }
-
-        println(
-            "%-4s %-20s %-15s %-10s %-20s %-30s %-20s %-20s".format(
-                instrumento["id_instrumento"].toString(),
-                instrumento.getString("nombre_instrumento"),
-                instrumento.getString("fabricante"),
-                "${instrumento["precio"]}€",
-                nombreCategoria,
-                nombreProveedor,
-                telefonoProveedor,
-                emailProveedor
-            )
-        )
+    } catch (e: Exception) {
+        println("Error en la consulta: ${e.message}")
     }
 
-    println("=".repeat(150))
+    println("=".repeat(180))
 }
 
 fun exportarBD(coleccion: MongoCollection<Document>, rutaJSON: String) {

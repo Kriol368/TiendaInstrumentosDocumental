@@ -53,7 +53,7 @@ Campos: `id_proveedor`, `nombre`, `telefono`, `email`, `direccion`
 4. Consultas especiales
 5. Instrumentos con categoría
 6. Instrumentos con proveedor
-7. Consulta completa (3 colecciones)
+7. Instrumentos con proveedor y categoria
 8. Salir
 ==================================================
 ```
@@ -80,9 +80,9 @@ ID   NOMBRE                FABRICANTE      AÑO    PRECIO      ID CATEGORÍA  ID
 ```
 
 ### Ejemplo 2: Consultas Combinadas
-**Seleccionar opción 7 (Consulta completa):**
+**Seleccionar opción 7:**
 ```
-INSTRUMENTOS CON CATEGORÍA Y PROVEEDOR (3 COLECCIONES)
+INSTRUMENTOS CON PROVEEDOR Y CATEGORÍA
 ======================================================================================
 ID   INSTRUMENTO          FABRICANTE      PRECIO    CATEGORÍA        PROVEEDOR
 1    Guitarra Eléctrica   Fender          44.33€    Cuerda           Music Suppliers S.A.
