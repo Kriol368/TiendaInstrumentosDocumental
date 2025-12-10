@@ -3,6 +3,7 @@ import com.mongodb.client.MongoClients
 import com.mongodb.client.MongoCollection
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Projections
+import com.mongodb.client.model.Updates
 import de.bwaldvogel.mongo.MongoServer
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend
 import org.bson.Document
@@ -15,9 +16,13 @@ lateinit var servidor: MongoServer
 lateinit var cliente: MongoClient
 lateinit var uri: String
 lateinit var coleccionInstrumentos: MongoCollection<Document>
+lateinit var coleccionCategorias: MongoCollection<Document>
+lateinit var coleccionProveedores: MongoCollection<Document>
 
 const val NOM_BD = "tiendainstrumentos"
-const val NOM_COLECCION = "instrumento"
+const val NOM_COLECCION_INSTRUMENTOS = "instrumento"
+const val NOM_COLECCION_CATEGORIAS = "categoria"
+const val NOM_COLECCION_PROVEEDORES = "proveedor"
 
 val scanner = Scanner(System.`in`)
 
@@ -27,7 +32,10 @@ fun conectarBD() {
     uri = "mongodb://${address.hostName}:${address.port}"
 
     cliente = MongoClients.create(uri)
-    coleccionInstrumentos = cliente.getDatabase(NOM_BD).getCollection(NOM_COLECCION)
+    val bd = cliente.getDatabase(NOM_BD)
+    coleccionInstrumentos = bd.getCollection(NOM_COLECCION_INSTRUMENTOS)
+    coleccionCategorias = bd.getCollection(NOM_COLECCION_CATEGORIAS)
+    coleccionProveedores = bd.getCollection(NOM_COLECCION_PROVEEDORES)
 
     println("Servidor MongoDB en memoria iniciado en $uri")
 }
@@ -41,10 +49,14 @@ fun desconectarBD() {
 fun main() {
     conectarBD()
     importarBD("src/main/resources/instrumentos.json", coleccionInstrumentos)
+    importarBD("src/main/resources/categorias.json", coleccionCategorias)
+    importarBD("src/main/resources/proveedores.json", coleccionProveedores)
 
     menu()
 
     exportarBD(coleccionInstrumentos, "src/main/resources/instrumentos.json")
+    exportarBD(coleccionCategorias, "src/main/resources/categorias.json")
+    exportarBD(coleccionProveedores, "src/main/resources/proveedores.json")
     desconectarBD()
 }
 
@@ -52,14 +64,50 @@ fun menu() {
     var opcion: Int
     do {
         println("=".repeat(50))
-        println("          GESTIÓN DE INSTRUMENTOS MUSICALES")
+        println("          GESTIÓN DE TIENDA DE INSTRUMENTOS")
+        println("=".repeat(50))
+        println("1. Gestión de Instrumentos")
+        println("2. Gestión de Categorías")
+        println("3. Gestión de Proveedores")
+        println("4. Consultas especiales")
+        println("5. Instrumentos con categoría")
+        println("6. Instrumentos con proveedor")
+        println("7. Instrumentos con proveedor y categoria")
+        println("8. Salir")
+        println("=".repeat(50))
+
+        opcion = try {
+            scanner.nextLine().toInt()
+        } catch (_: NumberFormatException) {
+            -1
+        }
+
+        when (opcion) {
+            1 -> menuInstrumentos()
+            2 -> menuCategorias()
+            3 -> menuProveedores()
+            4 -> variasOperaciones()
+            5 -> instrumentosConCategoria()
+            6 -> instrumentosConProveedor()
+            7 -> instrumentosConProveedorYCategoria()
+            8 -> println("¡Hasta pronto!")
+            else -> println("Opción no válida. Intente nuevamente.")
+        }
+    } while (opcion != 8)
+}
+
+
+fun menuInstrumentos() {
+    var opcion: Int
+    do {
+        println("=".repeat(50))
+        println("          GESTIÓN DE INSTRUMENTOS")
         println("=".repeat(50))
         println("1. Listar todos los instrumentos")
         println("2. Insertar nuevo instrumento")
         println("3. Actualizar precio de instrumento")
         println("4. Eliminar instrumento por ID")
-        println("5. Consultas especiales")
-        println("6. Salir")
+        println("5. Volver al menú principal")
         println("=".repeat(50))
 
         opcion = try {
@@ -73,37 +121,40 @@ fun menu() {
             2 -> insertarInstrumento()
             3 -> actualizarPrecio()
             4 -> eliminarInstrumento()
-            5 -> variasOperaciones()
-            6 -> println("¡Hasta pronto!")
+            5 -> println("Volviendo al menú principal...")
             else -> println("Opción no válida. Intente nuevamente.")
         }
-    } while (opcion != 6)
+    } while (opcion != 5)
 }
 
 fun listarInstrumentos() {
     val cursor = coleccionInstrumentos.find().iterator()
     cursor.use {
-        println("=".repeat(80))
+        println("=".repeat(120))
         println(
-            "%-4s %-20s %-15s %-6s %-10s".format(
-                "ID", "NOMBRE", "FABRICANTE", "AÑO", "PRECIO"
+            "%-4s %-20s %-15s %-6s %-10s %-15s %-15s".format(
+                "ID", "NOMBRE", "FABRICANTE", "AÑO", "PRECIO", "ID CATEGORÍA", "ID PROVEEDOR"
             )
         )
-        println("=".repeat(80))
+        println("=".repeat(120))
 
         while (it.hasNext()) {
             val doc = it.next()
+            val idCategoria = doc.getInteger("id_categoria") ?: "N/A"
+            val idProveedor = doc.getInteger("id_proveedor") ?: "N/A"
             println(
-                "%-4s %-20s %-15s %-6s %-10s".format(
+                "%-4s %-20s %-15s %-6s %-10s %-15s %-15s".format(
                     doc["id_instrumento"].toString(),
                     doc.getString("nombre_instrumento"),
                     doc.getString("fabricante"),
-                    doc.get("ano_fabricacion").toString(),
-                    "${doc.get("precio")}€"
+                    doc["ano_fabricacion"].toString(),
+                    "${doc["precio"]}€",
+                    idCategoria.toString(),
+                    idProveedor.toString()
                 )
             )
         }
-        println("=".repeat(80))
+        println("=".repeat(120))
     }
 }
 
@@ -144,8 +195,26 @@ fun insertarInstrumento() {
         }
     }
 
+    var idCategoria: Int?
+    println("ID de categoría: ")
+    val entradaCategoria = scanner.nextLine()
+    idCategoria = if (entradaCategoria.isBlank()) null else entradaCategoria.toIntOrNull()
+
+    var idProveedor: Int?
+    println("ID de proveedor: ")
+    val entradaProveedor = scanner.nextLine()
+    idProveedor = if (entradaProveedor.isBlank()) null else entradaProveedor.toIntOrNull()
+
     val doc = Document("id_instrumento", idInstrumento).append("nombre_instrumento", nombreInstrumento)
         .append("fabricante", fabricante).append("ano_fabricacion", anoFabricacion).append("precio", precio)
+
+    if (idCategoria != null) {
+        doc.append("id_categoria", idCategoria)
+    }
+
+    if (idProveedor != null) {
+        doc.append("id_proveedor", idProveedor)
+    }
 
     coleccionInstrumentos.insertOne(doc)
     println("Instrumento insertado con ID: $idInstrumento")
@@ -179,11 +248,11 @@ fun actualizarPrecio() {
         }
 
         val result = coleccionInstrumentos.updateOne(
-            Filters.eq("id_instrumento", idInstrumento), Document($$"$set", Document("precio", precio))
+            Filters.eq("id_instrumento", idInstrumento), Updates.set("precio", precio)
         )
 
-        if (result.modifiedCount > 0) println("Precio actualizado correctamente (${result.modifiedCount} documento modificado).")
-        else println("No se modificó ningún documento (el precio quizá ya era el mismo).")
+        if (result.modifiedCount > 0) println("Precio actualizado correctamente.")
+        else println("No se modificó ningún documento.")
     }
 }
 
@@ -203,6 +272,259 @@ fun eliminarInstrumento() {
     else println("No se encontró ningún instrumento con ese ID.")
 }
 
+fun menuCategorias() {
+    var opcion: Int
+    do {
+        println("=".repeat(50))
+        println("          GESTIÓN DE CATEGORÍAS")
+        println("=".repeat(50))
+        println("1. Listar todas las categorías")
+        println("2. Insertar nueva categoría")
+        println("3. Actualizar descripción de categoría")
+        println("4. Eliminar categoría por ID")
+        println("5. Volver al menú principal")
+        println("=".repeat(50))
+
+        opcion = try {
+            scanner.nextLine().toInt()
+        } catch (_: NumberFormatException) {
+            -1
+        }
+
+        when (opcion) {
+            1 -> listarCategorias()
+            2 -> insertarCategoria()
+            3 -> actualizarDescripcionCategoria()
+            4 -> eliminarCategoria()
+            5 -> println("Volviendo al menú principal...")
+            else -> println("Opción no válida. Intente nuevamente.")
+        }
+    } while (opcion != 5)
+}
+
+fun listarCategorias() {
+    val cursor = coleccionCategorias.find().iterator()
+    cursor.use {
+        println("=".repeat(80))
+        println(
+            "%-4s %-20s %-40s".format(
+                "ID", "NOMBRE", "DESCRIPCIÓN"
+            )
+        )
+        println("=".repeat(80))
+
+        while (it.hasNext()) {
+            val doc = it.next()
+            println(
+                "%-4s %-20s %-40s".format(
+                    doc["id_categoria"].toString(), doc.getString("nombre"), doc.getString("descripcion")
+                )
+            )
+        }
+        println("=".repeat(80))
+    }
+}
+
+fun insertarCategoria() {
+    var idCategoria: Int? = null
+    while (idCategoria == null) {
+        print("ID de la categoría: ")
+        val entrada = scanner.nextLine()
+        idCategoria = entrada.toIntOrNull()
+        if (idCategoria == null) {
+            println("El ID debe ser un número !!!")
+        }
+    }
+
+    print("Nombre de la categoría: ")
+    val nombre = scanner.nextLine()
+
+    print("Descripción: ")
+    val descripcion = scanner.nextLine()
+
+    val doc = Document("id_categoria", idCategoria).append("nombre", nombre).append("descripcion", descripcion)
+
+    coleccionCategorias.insertOne(doc)
+    println("Categoría insertada con ID: $idCategoria")
+}
+
+fun actualizarDescripcionCategoria() {
+    var idCategoria: Int? = null
+    while (idCategoria == null) {
+        print("ID de la categoría a actualizar: ")
+        val entrada = scanner.nextLine()
+        idCategoria = entrada.toIntOrNull()
+        if (idCategoria == null) {
+            println("El ID debe ser un número !!!")
+        }
+    }
+
+    val categoria = coleccionCategorias.find(Filters.eq("id_categoria", idCategoria)).firstOrNull()
+    if (categoria == null) {
+        println("No se encontró ninguna categoría con id_categoria = \"$idCategoria\".")
+    } else {
+        println("Categoría encontrada: ${categoria.getString("nombre")} (descripción: ${categoria.getString("descripcion")})")
+
+        print("Nueva descripción: ")
+        val nuevaDescripcion = scanner.nextLine()
+
+        val result = coleccionCategorias.updateOne(
+            Filters.eq("id_categoria", idCategoria), Updates.set("descripcion", nuevaDescripcion)
+        )
+
+        if (result.modifiedCount > 0) println("Descripción actualizada correctamente.")
+        else println("No se modificó ningún documento.")
+    }
+}
+
+fun eliminarCategoria() {
+    var idCategoria: Int? = null
+    while (idCategoria == null) {
+        print("ID de la categoría a eliminar: ")
+        val entrada = scanner.nextLine()
+        idCategoria = entrada.toIntOrNull()
+        if (idCategoria == null) {
+            println("El ID debe ser un número !!!")
+        }
+    }
+
+    val result = coleccionCategorias.deleteOne(Filters.eq("id_categoria", idCategoria))
+    if (result.deletedCount > 0) println("Categoría eliminada correctamente.")
+    else println("No se encontró ninguna categoría con ese ID.")
+}
+
+fun menuProveedores() {
+    var opcion: Int
+    do {
+        println("=".repeat(50))
+        println("          GESTIÓN DE PROVEEDORES")
+        println("=".repeat(50))
+        println("1. Listar todos los proveedores")
+        println("2. Insertar nuevo proveedor")
+        println("3. Actualizar email de proveedor")
+        println("4. Eliminar proveedor por ID")
+        println("5. Volver al menú principal")
+        println("=".repeat(50))
+
+        opcion = try {
+            scanner.nextLine().toInt()
+        } catch (_: NumberFormatException) {
+            -1
+        }
+
+        when (opcion) {
+            1 -> listarProveedores()
+            2 -> insertarProveedor()
+            3 -> actualizarEmailProveedor()
+            4 -> eliminarProveedor()
+            5 -> println("Volviendo al menú principal...")
+            else -> println("Opción no válida. Intente nuevamente.")
+        }
+    } while (opcion != 5)
+}
+
+fun listarProveedores() {
+    val cursor = coleccionProveedores.find().iterator()
+    cursor.use {
+        println("=".repeat(120))
+        println(
+            "%-4s %-30s %-15s %-30s %-40s".format(
+                "ID", "NOMBRE", "TELÉFONO", "EMAIL", "DIRECCIÓN"
+            )
+        )
+        println("=".repeat(120))
+
+        while (it.hasNext()) {
+            val doc = it.next()
+            println(
+                "%-4s %-30s %-15s %-30s %-40s".format(
+                    doc["id_proveedor"].toString(),
+                    doc.getString("nombre"),
+                    doc.getString("telefono"),
+                    doc.getString("email"),
+                    doc.getString("direccion")
+                )
+            )
+        }
+        println("=".repeat(120))
+    }
+}
+
+fun insertarProveedor() {
+    var idProveedor: Int? = null
+    while (idProveedor == null) {
+        print("ID del proveedor: ")
+        val entrada = scanner.nextLine()
+        idProveedor = entrada.toIntOrNull()
+        if (idProveedor == null) {
+            println("El ID debe ser un número !!!")
+        }
+    }
+
+    print("Nombre del proveedor: ")
+    val nombre = scanner.nextLine()
+
+    print("Teléfono: ")
+    val telefono = scanner.nextLine()
+
+    print("Email: ")
+    val email = scanner.nextLine()
+
+    print("Dirección: ")
+    val direccion = scanner.nextLine()
+
+    val doc = Document("id_proveedor", idProveedor).append("nombre", nombre).append("telefono", telefono)
+        .append("email", email).append("direccion", direccion)
+
+    coleccionProveedores.insertOne(doc)
+    println("Proveedor insertado con ID: $idProveedor")
+}
+
+fun actualizarEmailProveedor() {
+    var idProveedor: Int? = null
+    while (idProveedor == null) {
+        print("ID del proveedor a actualizar: ")
+        val entrada = scanner.nextLine()
+        idProveedor = entrada.toIntOrNull()
+        if (idProveedor == null) {
+            println("El ID debe ser un número !!!")
+        }
+    }
+
+    val proveedor = coleccionProveedores.find(Filters.eq("id_proveedor", idProveedor)).firstOrNull()
+    if (proveedor == null) {
+        println("No se encontró ningún proveedor con id_proveedor = \"$idProveedor\".")
+    } else {
+        println("Proveedor encontrado: ${proveedor.getString("nombre")} (email: ${proveedor.getString("email")})")
+
+        print("Nuevo email: ")
+        val nuevoEmail = scanner.nextLine()
+
+        val result = coleccionProveedores.updateOne(
+            Filters.eq("id_proveedor", idProveedor), Updates.set("email", nuevoEmail)
+        )
+
+        if (result.modifiedCount > 0) println("Email actualizado correctamente.")
+        else println("No se modificó ningún documento.")
+    }
+}
+
+fun eliminarProveedor() {
+    var idProveedor: Int? = null
+    while (idProveedor == null) {
+        print("ID del proveedor a eliminar: ")
+        val entrada = scanner.nextLine()
+        idProveedor = entrada.toIntOrNull()
+        if (idProveedor == null) {
+            println("El ID debe ser un número !!!")
+        }
+    }
+
+    val result = coleccionProveedores.deleteOne(Filters.eq("id_proveedor", idProveedor))
+    if (result.deletedCount > 0) println("Proveedor eliminado correctamente.")
+    else println("No se encontró ningún proveedor con ese ID.")
+}
+
 fun variasOperaciones() {
     println("\n" + "=".repeat(60))
     println("INSTRUMENTOS CON PRECIO MAYOR A 300€")
@@ -212,11 +534,11 @@ fun variasOperaciones() {
     coleccionInstrumentos.find(Filters.gt("precio", 300)).forEach { doc ->
         println(
             "%-4s %-20s %-15s %-6s %-10s".format(
-                doc.get("id_instrumento").toString(),
+                doc["id_instrumento"].toString(),
                 doc.getString("nombre_instrumento"),
                 doc.getString("fabricante"),
-                doc.get("ano_fabricacion").toString(),
-                "${doc.get("precio")}€"
+                doc["ano_fabricacion"].toString(),
+                "${doc["precio"]}€"
             )
         )
     }
@@ -244,9 +566,7 @@ fun variasOperaciones() {
             val doc = it.next()
             println(
                 "%-4s %-20s %-15s".format(
-                    doc.get("id_instrumento").toString(),
-                    doc.getString("nombre_instrumento"),
-                    doc.getString("fabricante")
+                    doc["id_instrumento"].toString(), doc.getString("nombre_instrumento"), doc.getString("fabricante")
                 )
             )
         }
@@ -295,6 +615,140 @@ fun variasOperaciones() {
     println("=".repeat(50))
 }
 
+fun instrumentosConCategoria() {
+    println("\n" + "=".repeat(100))
+    println("INSTRUMENTOS CON SU CATEGORÍA")
+    println("=".repeat(100))
+    println(
+        "%-4s %-20s %-15s %-10s %-20s %-25s".format(
+            "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "CATEGORÍA", "DESCRIPCIÓN"
+        )
+    )
+    println("=".repeat(100))
+
+    coleccionInstrumentos.find().forEach { instrumento ->
+        val idCategoria = instrumento.getInteger("id_categoria")
+        var nombreCategoria = "Sin categoría"
+        var descripcionCategoria = "N/A"
+
+        if (idCategoria != null) {
+            val categoria = coleccionCategorias.find(Filters.eq("id_categoria", idCategoria)).firstOrNull()
+            if (categoria != null) {
+                nombreCategoria = categoria.getString("nombre")
+                descripcionCategoria = categoria.getString("descripcion")
+            }
+        }
+
+        println(
+            "%-4s %-20s %-15s %-10s %-20s %-25s".format(
+                instrumento["id_instrumento"].toString(),
+                instrumento.getString("nombre_instrumento"),
+                instrumento.getString("fabricante"),
+                "${instrumento["precio"]}€",
+                nombreCategoria,
+                descripcionCategoria
+            )
+        )
+    }
+
+    println("=".repeat(100))
+}
+
+fun instrumentosConProveedor() {
+    println("\n" + "=".repeat(120))
+    println("INSTRUMENTOS CON SU PROVEEDOR")
+    println("=".repeat(120))
+    println(
+        "%-4s %-20s %-15s %-10s %-30s %-15s %-25s".format(
+            "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "PROVEEDOR", "TELÉFONO", "EMAIL"
+        )
+    )
+    println("=".repeat(120))
+
+    coleccionInstrumentos.find().forEach { instrumento ->
+        val idProveedor = instrumento.getInteger("id_proveedor")
+        var nombreProveedor = "Sin proveedor"
+        var telefonoProveedor = "N/A"
+        var emailProveedor = "N/A"
+
+        if (idProveedor != null) {
+            val proveedor = coleccionProveedores.find(Filters.eq("id_proveedor", idProveedor)).firstOrNull()
+            if (proveedor != null) {
+                nombreProveedor = proveedor.getString("nombre")
+                telefonoProveedor = proveedor.getString("telefono")
+                emailProveedor = proveedor.getString("email")
+            }
+        }
+
+        println(
+            "%-4s %-20s %-15s %-10s %-30s %-15s %-25s".format(
+                instrumento["id_instrumento"].toString(),
+                instrumento.getString("nombre_instrumento"),
+                instrumento.getString("fabricante"),
+                "${instrumento["precio"]}€",
+                nombreProveedor,
+                telefonoProveedor,
+                emailProveedor
+            )
+        )
+    }
+
+    println("=".repeat(120))
+}
+
+fun instrumentosConProveedorYCategoria() {
+    println("\n" + "=".repeat(150))
+    println("INSTRUMENTOS CON PROVEEDOR Y CATEGORÍA")
+    println("=".repeat(150))
+    println(
+        "%-4s %-20s %-15s %-10s %-20s %-30s %-20s %-20s".format(
+            "ID", "INSTRUMENTO", "FABRICANTE", "PRECIO", "CATEGORÍA", "PROVEEDOR", "TELÉFONO", "EMAIL"
+        )
+    )
+    println("=".repeat(150))
+
+    coleccionInstrumentos.find().forEach { instrumento ->
+        val idCategoria = instrumento.getInteger("id_categoria")
+        val idProveedor = instrumento.getInteger("id_proveedor")
+
+        var nombreCategoria = "Sin categoría"
+        var nombreProveedor = "Sin proveedor"
+        var telefonoProveedor = "N/A"
+        var emailProveedor = "N/A"
+
+        if (idCategoria != null) {
+            val categoria = coleccionCategorias.find(Filters.eq("id_categoria", idCategoria)).firstOrNull()
+            if (categoria != null) {
+                nombreCategoria = categoria.getString("nombre")
+            }
+        }
+
+        if (idProveedor != null) {
+            val proveedor = coleccionProveedores.find(Filters.eq("id_proveedor", idProveedor)).firstOrNull()
+            if (proveedor != null) {
+                nombreProveedor = proveedor.getString("nombre")
+                telefonoProveedor = proveedor.getString("telefono")
+                emailProveedor = proveedor.getString("email")
+            }
+        }
+
+        println(
+            "%-4s %-20s %-15s %-10s %-20s %-30s %-20s %-20s".format(
+                instrumento["id_instrumento"].toString(),
+                instrumento.getString("nombre_instrumento"),
+                instrumento.getString("fabricante"),
+                "${instrumento["precio"]}€",
+                nombreCategoria,
+                nombreProveedor,
+                telefonoProveedor,
+                emailProveedor
+            )
+        )
+    }
+
+    println("=".repeat(150))
+}
+
 fun exportarBD(coleccion: MongoCollection<Document>, rutaJSON: String) {
     val settings = JsonWriterSettings.builder().indent(true).build()
     val file = File(rutaJSON)
@@ -313,7 +767,13 @@ fun exportarBD(coleccion: MongoCollection<Document>, rutaJSON: String) {
         cursor.close()
     }
 
-    println("Exportación de instrumentos completada")
+    val nombreColeccion = when (coleccion) {
+        coleccionInstrumentos -> "instrumentos"
+        coleccionCategorias -> "categorías"
+        coleccionProveedores -> "proveedores"
+        else -> "datos"
+    }
+    println("Exportación de $nombreColeccion completada")
 }
 
 fun importarBD(rutaJSON: String, coleccion: MongoCollection<Document>) {
@@ -353,7 +813,13 @@ fun importarBD(rutaJSON: String, coleccion: MongoCollection<Document>) {
 
     try {
         coleccion.insertMany(documentos)
-        println("Importación completada: ${documentos.size} documentos.")
+        val nombreColeccion = when (coleccion) {
+            coleccionInstrumentos -> "instrumentos"
+            coleccionCategorias -> "categorías"
+            coleccionProveedores -> "proveedores"
+            else -> "datos"
+        }
+        println("Importación de $nombreColeccion completada: ${documentos.size} documentos.")
     } catch (e: Exception) {
         println("Error importando documentos: ${e.message}")
     }

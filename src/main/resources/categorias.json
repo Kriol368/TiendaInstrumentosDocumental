@@ -1,0 +1,41 @@
+[
+{
+  "_id": {
+    "$oid": "6939ad1d522c7a7c8dea6801"
+  },
+  "descripcion": "Instrumentos de cuerda pulsada o frotada",
+  "id_categoria": 1,
+  "nombre": "Cuerda"
+},
+{
+  "_id": {
+    "$oid": "6939ad1d522c7a7c8dea6802"
+  },
+  "descripcion": "Instrumentos de viento madera y metal",
+  "id_categoria": 2,
+  "nombre": "Viento"
+},
+{
+  "_id": {
+    "$oid": "6939ad1d522c7a7c8dea6803"
+  },
+  "descripcion": "Instrumentos de percusión",
+  "id_categoria": 3,
+  "nombre": "Percusión"
+},
+{
+  "_id": {
+    "$oid": "6939ad1d522c7a7c8dea6804"
+  },
+  "descripcion": "Instrumentos de teclado",
+  "id_categoria": 4,
+  "nombre": "Teclado"
+},
+{
+  "_id": {
+    "$oid": "6939ad1d522c7a7c8dea6805"
+  },
+  "descripcion": "Instrumentos musicales electrónicos",
+  "id_categoria": 5,
+  "nombre": "Electrónico"
+}]

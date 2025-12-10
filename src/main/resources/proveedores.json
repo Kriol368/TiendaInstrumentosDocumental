@@ -1,0 +1,31 @@
+[
+{
+  "_id": {
+    "$oid": "6939ad1e522c7a7c8dea6806"
+  },
+  "id_proveedor": 1,
+  "direccion": "Calle Música 123, Madrid",
+  "telefono": "123456789",
+  "nombre": "Music Suppliers S.A.",
+  "email": "info@musicsuppliers.com"
+},
+{
+  "_id": {
+    "$oid": "6939ad1e522c7a7c8dea6807"
+  },
+  "id_proveedor": 2,
+  "direccion": "Avenida Sonido 45, Barcelona",
+  "telefono": "987654321",
+  "nombre": "Instrumentos Profesionales SL",
+  "email": "ventas@instrumprof.com"
+},
+{
+  "_id": {
+    "$oid": "6939ad1e522c7a7c8dea6808"
+  },
+  "id_proveedor": 3,
+  "direccion": "Plaza Armonía 7, Valencia",
+  "telefono": "555666777",
+  "nombre": "Global Music Distributors",
+  "email": "contact@globalmusic.com"
+}]
