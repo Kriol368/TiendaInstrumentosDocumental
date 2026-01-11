@@ -168,6 +168,12 @@ fun insertarInstrumento() {
         }
     }
 
+    val instrumentoExistente = coleccionInstrumentos.find(Filters.eq("id_instrumento", idInstrumento)).firstOrNull()
+    if (instrumentoExistente != null) {
+        println("Error: Ya existe un instrumento con ID $idInstrumento")
+        return
+    }
+
     print("Nombre del instrumento: ")
     val nombreInstrumento = scanner.nextLine()
 
@@ -335,6 +341,12 @@ fun insertarCategoria() {
         }
     }
 
+    val categoriaExistente = coleccionCategorias.find(Filters.eq("id_categoria", idCategoria)).firstOrNull()
+    if (categoriaExistente != null) {
+        println("Error: Ya existe una categoría con ID $idCategoria")
+        return
+    }
+
     print("Nombre de la categoría: ")
     val nombre = scanner.nextLine()
 
@@ -459,6 +471,13 @@ fun insertarProveedor() {
             println("El ID debe ser un número !!!")
         }
     }
+
+    val proveedorExistente = coleccionProveedores.find(Filters.eq("id_proveedor", idProveedor)).firstOrNull()
+    if (proveedorExistente != null) {
+        println("Error: Ya existe un proveedor con ID $idProveedor")
+        return
+    }
+
 
     print("Nombre del proveedor: ")
     val nombre = scanner.nextLine()
